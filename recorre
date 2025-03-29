@@ -1,0 +1,114 @@
+import random
+import time
+
+def horizontal(velocidad, delay, posicion):
+    for i in range(velocidad):
+        print(" " * posicion + "-", end="", flush=True)
+        time.sleep(delay)
+    print()
+
+def recta(velocidad, delay, posicion):
+    for i in range(velocidad):
+        print(" " * posicion + "|", flush=True)
+        time.sleep(delay)
+
+def diagonal_derecha(velocidad, delay, posicion):
+    espacios = posicion
+    for i in range(velocidad):
+        print(" " * espacios + "\\", flush=True)
+        time.sleep(delay)
+        espacios += 1
+
+def diagonal_izquierda(velocidad, delay, posicion):
+    espacios = posicion
+    for i in range(velocidad):
+        print(" " * espacios + "/", flush=True)
+        time.sleep(delay)
+        espacios -= 1
+
+def obtener_ruta(tiempo_actual):
+    if 0 <= tiempo_actual <= 19:
+        return 0
+    elif 20 <= tiempo_actual <= 39:
+        return 1
+    else:
+        return 2
+
+def lanzar_dado():
+    return random.randint(1, 6)
+
+def avanzar(movimiento, distancia, delay, posicion):
+    if movimiento == "-":
+        horizontal(distancia, delay, posicion)
+        return posicion + distancia
+    elif movimiento == "|":
+        recta(distancia, delay, posicion)
+        return posicion
+    elif movimiento == "\\":
+        diagonal_derecha(distancia, delay, posicion)
+        return posicion + distancia
+    elif movimiento == "/":
+        diagonal_izquierda(distancia, delay, posicion)
+        return posicion - distancia
+
+def simular_recorrido(recorrido, vias, r_vias, recorridoSel, delay, tanque):
+    posicion = 0
+    distancia_total = sum(recorrido[recorridoSel])
+    distancia_recorrida = 0
+    
+    print(f"\n🚗 Ruta seleccionada: {recorridoSel + 1}")
+    print("\n🛣️ Recorrido por:")
+    for tramo in r_vias[recorridoSel]:
+        nombre_via = next((v["NOMBRE"] for v in vias if v["NUMERO"] == tramo), None)
+        if nombre_via:
+            print(f"- {nombre_via}")
+    
+    print("\nDibujando recorrido...\n")
+    
+    index_tramo = 0
+    while distancia_recorrida < distancia_total:
+        dado = lanzar_dado()
+        distancia_por_recorrer = min(dado, distancia_total - distancia_recorrida)
+        
+        while distancia_por_recorrer > 0 and index_tramo < len(recorrido[recorridoSel]):
+            tramo = r_vias[recorridoSel][index_tramo]
+            distancia_tramo = recorrido[recorridoSel][index_tramo]
+            movimiento = next((v["MOVIMIENTO"] for v in vias if v["NUMERO"] == tramo), None)
+            
+            if movimiento:
+                avanzar_km = min(distancia_tramo, distancia_por_recorrer)
+                posicion = avanzar(movimiento, avanzar_km, delay, posicion)
+                distancia_recorrida += avanzar_km
+                tanque -= avanzar_km * 0.5
+                distancia_por_recorrer -= avanzar_km
+                
+                if avanzar_km == distancia_tramo:
+                    index_tramo += 1  # Pasar al siguiente tramo si se recorrió completamente
+        
+        time.sleep(delay * 2)  # Esperar el doble del delay antes de la siguiente tirada
+    
+    print(f"\n✅ Recorrido completado. Combustible restante: {tanque:.2f} L")
+
+def main():
+    tiempo_actual = random.randint(0, 59)
+    ruta_index = obtener_ruta(tiempo_actual)
+    tanque = round(random.uniform(35, 100), 2)
+    delay = float(input("Ingrese el retraso en segundos (ej. 0.1 para 100ms): ")) / 1000
+    
+    print(f"\n⛽ Tanque de combustible inicial: {tanque} L")
+    
+    recorrido = [[12, 7, 12, 0], [4, 3, 10, 4], [10, 7, 6, 0]]
+    vias = [
+        {"NUMERO": 1, "NOMBRE": "Autopista norte", "MOVIMIENTO": "-"},
+        {"NUMERO": 2, "NOMBRE": "NQS", "MOVIMIENTO": "\\"},
+        {"NUMERO": 3, "NOMBRE": "Avenida Boyacá", "MOVIMIENTO": "\\"},
+        {"NUMERO": 4, "NOMBRE": "Calle 26", "MOVIMIENTO": "/"},
+        {"NUMERO": 5, "NOMBRE": "Calle 100", "MOVIMIENTO": "\\"},
+        {"NUMERO": 6, "NOMBRE": "Calle 170", "MOVIMIENTO": "|"}
+    ]
+    r_vias = [[1, 2, 4, 0], [1, 6, 3, 4], [1, 5, 4, 0]]
+    
+    
+    simular_recorrido(recorrido, vias, r_vias, ruta_index, delay, tanque)
+
+main()
